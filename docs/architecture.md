@@ -1,139 +1,116 @@
-1. Problem Statement
+# SpikeFlow High-Level Architecture
 
-Modern REST APIs face multiple challenges in real-world production systems:
+SpikeFlow utilizes a hybrid execution model combining a highly-configurable GraphQL Gateway, a reverse-proxy routing layer (NGINX), and dual backend runtimes (Docker Containers + Serverless Functions). 
 
-Multiple endpoints lead to over-fetching and under-fetching of data.
+---
 
-Sudden traffic spikes can overload backend services.
+## 1. System Topology Diagram
 
-Scaling all services all the time is costly and inefficient.
+```mermaid
+graph TD
+    Client[Web / API Consumer] -->|HTTPS Request| Nginx[NGINX Reverse Proxy]
+    
+    subgraph Gateway Layer
+        Nginx -->|Rate Limiting & Proxying| Gateway[GraphQL Gateway]
+        Gateway -->|Rule Lookup| Rules[(Routing Rules Cache)]
+        Gateway -->|Metrics Stream| Metrics[(Metrics Engine)]
+    end
 
-Traditional APIs lack visibility into how requests are processed internally.
+    subgraph Backend Execution Runtimes
+        Gateway -->|Stateful Ops / Low Latency| DockerRun[Core Services: Docker Containers]
+        Gateway -->|Stateless Compute / Burst Ops| ServerlessRun[Serverless Functions: AWS Lambda/Cloud Functions]
+        
+        DockerRun --> DB[(Persistent Database)]
+        ServerlessRun -.->|Optional Read-Only Cache| DB
+    end
+```
 
-This project aims to solve these problems by designing an adaptive backend platform that intelligently routes requests based on their nature and load characteristics. 
+---
 
+## 2. Core Architectural Components
 
-2. Project Overview
+### 2.1 Traffic Control Layer (NGINX)
+NGINX sits at the perimeter of the architecture and performs:
+- **Rate Limiting:** Protects the gateway from client-level abuse.
+- **SSL Termination & Caching:** Offloads static content caching and TLS processing.
+- **Initial Route Filters:** Rejects requests with invalid schemas or malformed headers before they reach the Node.js process.
 
-SpikeFlow is a developer-focused backend platform built around a GraphQL API gateway.
+### 2.2 GraphQL Gateway
+The central coordinator of the platform. Instead of simply forwarding requests:
+1. It parses the incoming GraphQL Document.
+2. It extracts the **Operation Name** and **Variables**.
+3. It fetches execution metadata for the operation (e.g., database requirements, latency tolerance, priority).
+4. It calls the **Decision Engine** to select the target runtime (Docker or Serverless).
+5. It executes/proxies the request to the chosen runtime and gathers metrics.
 
-Instead of treating all requests equally, the platform:
+### 2.3 Stateful Runtime (Docker Containers)
+- **Use Case:** Stateful, persistent-connection, database-heavy operations (e.g., processing checkouts, updating user profiles, managing orders).
+- **Benefits:** Low database connection overhead (persistent pool), predictable performance, zero cold starts.
 
-Routes stable, stateful operations to containerized services.
+### 2.4 Serverless Runtime (FaaS)
+- **Use Case:** High-compute, short-lived, burst-heavy operations (e.g., intensive fuzzy-search, product catalog analytics, batch invoice generation).
+- **Benefits:** Scales to zero when idle, handle millions of concurrent operations during spike events without affecting core systems.
 
-Routes burst-heavy or compute-intensive operations to serverless functions.
+---
 
-Uses a reverse proxy to control traffic, rate limits, and routing behavior.
+## 3. End-to-End Request Flow
 
-The system provides a frontend dashboard to visualize API usage, routing decisions, and system performance.
+The execution lifecycle of a request follows this pipeline:
 
-3. High-Level Architecture
-Client (Web / API Consumer)
-        ↓
-     NGINX
- (Rate limiting, caching,
-  traffic routing)
-        ↓
- GraphQL Gateway
- (Single API entry point)
-        ↓
- ┌────────────────────────────┐
- │                            │
- │   Core Services (Docker)   │
- │   - Users                  │
- │   - Products               │
- │   - Orders                 │
- │                            │
- │   Persistent Database      │
- │                            │
- └────────────────────────────┘
-                │
-                ↓
-        Serverless Functions
- (Search, analytics, burst ops)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant Proxy as NGINX Proxy
+    participant Gateway as GraphQL Gateway
+    participant Engine as Decision Engine
+    participant Docker as Containerized Service (Docker)
+    participant Serverless as Serverless Function (FaaS)
+    participant DB as Database
 
-4. Key Architectural Decisions
-4.1 GraphQL as API Gateway
+    Client->>Proxy: POST /graphql (Query: searchProducts)
+    Proxy->>Proxy: Rate Limiting & Filter Checks
+    Proxy->>Gateway: Forward GraphQL Request
+    Gateway->>Engine: Evaluate request metadata & system load
+    alt Route to Docker
+        Engine-->>Gateway: Select Docker Container
+        Gateway->>Docker: Resolve Resolver logic
+        Docker->>DB: Query Database
+        DB-->>Docker: Data Results
+        Docker-->>Gateway: Return Payload
+    else Route to Serverless (e.g. Spike event or Heavy compute)
+        Engine-->>Gateway: Select Serverless Endpoint
+        Gateway->>Serverless: Invoke function
+        Serverless-->>Gateway: Return Payload
+    end
+    Gateway-->>Client: Final GraphQL Response (JSON)
+```
 
-GraphQL is used instead of REST to:
+### Request Pipeline Hierarchy
+```
+Client Request
+      ↓
+NGINX Proxy (Filters, Rates)
+      ↓
+GraphQL Gateway (AST Parse)
+      ↓
+Operation Selection
+      ↓
+Metadata Enrichment (Operation Cost, Priority)
+      ↓
+Routing Policy Evaluation (Decision Engine)
+      ↓
+Execution Runtime (Docker vs Serverless)
+      ↓
+GraphQL Response Serialization
+```
 
-Provide a single API endpoint.
+---
 
-Allow clients to request only the required data.
+## 4. Key Architectural Decisions
 
-Enable operation-level routing, which is difficult with REST APIs.
+### Why GraphQL as the API Gateway?
+Unlike REST where routes are static URL paths (e.g., `/api/products`), GraphQL allows single-endpoint access with highly flexible query payloads. By compiling the query string into an Abstract Syntax Tree (AST), SpikeFlow can inspect the *exact field structure* of what the client requested and make routing decisions based on the query complexity.
 
-The GraphQL gateway acts as the central control point of the system.
-4.2 Hybrid Container + Serverless Model
-
-The platform uses a hybrid execution model:
-
-Containerized services handle stable, stateful operations that require persistent data.
-
-Serverless functions handle burst-heavy, compute-focused operations that benefit from auto-scaling.
-
-This approach improves both scalability and cost efficiency.
-
-4.3 Role of NGINX
-
-NGINX acts as the system’s traffic control layer:
-
-Enforces rate limiting to protect backend services.
-
-Routes traffic based on GraphQL operation patterns.
-
-Provides caching where applicable.
-
-This keeps backend services simple and focused on business logic.
-
-5. System Goals
-
-High availability under traffic spikes.
-
-Clear separation between stateful and stateless workloads.
-
-Cost-efficient scaling strategy.
-
-High visibility into request routing and performance.
-
-6. Out of Scope (Initial Phase)
-
-To maintain focus, the following are intentionally excluded from the first version:
-
-Authentication and authorization
-
-Kubernetes orchestration
-
-CI/CD pipelines
-
-Advanced UI features
-
-These can be added in later iterations.
-
-7. Success Criteria
-
-The project is considered successful if:
-
-The GraphQL API can handle mixed workloads.
-
-Serverless functions are triggered only for appropriate operations.
-
-Traffic routing decisions are observable via the dashboard.
-
-The system remains stable during simulated load spikes.
-
-8. Learning Objectives
-
-Through this project, the following skills are developed:
-
-System design and architectural thinking.
-
-Practical GraphQL usage beyond CRUD APIs.
-
-Effective use of Docker and serverless together.
-
-Understanding traffic management with NGINX.
-
-9. Summary
-
-PulseAPI demonstrates how modern backend systems can move beyond traditional REST APIs by combining GraphQL, containers, serverless functions, and intelligent traffic control to build adaptive, scalable platforms.
+### The Hybrid Execution Model
+Traditionally, companies must choose between fully serverless (high latency, cold start issues, DB pool exhaustion) or fully containerized (expensive peak provision). SpikeFlow uses a hybrid approach: **stateful reads/writes remain containerized**, while **heavy read search/analytics or volatile traffic operations are offloaded to Serverless**, combining the best of both worlds.
