@@ -1,19 +1,5 @@
-import { ApolloServer} from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
-import { typeDefs, resolvers } from "./schema/schema.js";
+import { startServer } from "./app.js";
 
-
-async function startServer() {
-    const server = new ApolloServer({
-        typeDefs,
-        resolvers,
-    });
-
-    const { url } = await startStandaloneServer(server, {
-        listen: { port: 4000 },
-    });
-
-    console.log(`🚀 Server ready at ${url}`);
-}
-
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start Apollo Server:", err);
+});
