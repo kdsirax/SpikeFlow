@@ -1,0 +1,138 @@
+########################################
+# 1. Create Organization
+########################################
+
+mutation CreateOrganization {
+  createOrganization(
+    input: {
+      name: "Acme Technologies"
+      slug: "acme-tech"
+    }
+  ) {
+    id
+    name
+    slug
+  }
+}
+
+########################################
+# Copy Organization ID
+########################################
+
+# Example:
+# organizationId = "<ORG_ID>"
+
+
+########################################
+# 2. Create Application
+########################################
+
+mutation CreateApplication {
+  createApplication(
+    input: {
+      organizationId: "<ORG_ID>"
+      name: "Adaptive API"
+      description: "Smart API Routing Platform"
+    }
+  ) {
+    id
+    name
+  }
+}
+
+########################################
+# Copy Application ID
+########################################
+
+# applicationId = "<APP_ID>"
+
+
+########################################
+# 3. Create GraphQL Service
+########################################
+
+mutation CreateGraphQLService {
+  createGraphQLService(
+    input: {
+      applicationId: "<APP_ID>"
+      name: "Gateway"
+      endpoint: "http://localhost:4000/graphql"
+      environment: "development"
+    }
+  ) {
+    id
+    name
+  }
+}
+
+########################################
+# Copy GraphQL Service ID
+########################################
+
+# graphQLServiceId = "<SERVICE_ID>"
+
+
+########################################
+# 4. Create Operation
+########################################
+
+mutation CreateOperation {
+  createOperation(
+    input: {
+      graphQLServiceId: "<SERVICE_ID>"
+      name: "GetUsers"
+      type: QUERY
+      estimatedCost: LOW
+      cacheable: true
+      requiresDatabase: true
+      priority: HIGH
+    }
+  ) {
+    id
+    name
+  }
+}
+
+########################################
+# Copy Operation ID
+########################################
+
+# operationId = "<OPERATION_ID>"
+
+
+########################################
+# 5. Create Routing Policy
+########################################
+
+mutation CreateRoutingPolicy {
+  createRoutingPolicy(
+    input: {
+      operationId: "<OPERATION_ID>"
+      preferredRuntime: DOCKER
+      cpuThreshold: 80
+      requestThreshold: 1000
+      enabled: true
+    }
+  ) {
+    id
+    preferredRuntime
+  }
+}
+
+########################################
+# 6. Test Decision Engine
+########################################
+
+mutation MakeRoutingDecision {
+  makeRoutingDecision(
+    operationId: "<OPERATION_ID>"
+  ) {
+    runtime
+    reason
+  }
+}
+
+########################################
+# Expected (with mock metrics cpuUsage: 75, requestsPerMinute: 850, policy cpuThreshold: 80, requestThreshold: 1000):
+# runtime = DOCKER
+########################################

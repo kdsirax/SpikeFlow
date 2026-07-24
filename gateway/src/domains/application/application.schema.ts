@@ -1,7 +1,7 @@
 export const typeDefs = `#graphql
   type Application {
     id: ID!
-    organizationId: String!
+    organizationId: ID!
     name: String!
     description: String!
     createdAt: String!
@@ -9,7 +9,7 @@ export const typeDefs = `#graphql
   }
 
   input CreateApplicationInput {
-    organizationId: String!
+    organizationId: ID!
     name: String!
     description: String!
   }
