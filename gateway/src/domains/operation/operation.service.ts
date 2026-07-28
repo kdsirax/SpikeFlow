@@ -1,7 +1,8 @@
-import { randomUUID } from "crypto";
 import type { IOperationRepository } from "./operation.repository.js";
 import type { IGraphQLServiceRepository } from "../graphql-service/graphql-service.repository.js";
 import type { CreateOperationInput, Operation } from "./operation.types.js";
+import { NotFoundError } from "../../shared/errors/NotFoundError.js";
+import { logger } from "../../shared/logger/logger.js";
 
 export class OperationService {
   constructor(
@@ -12,24 +13,19 @@ export class OperationService {
   async createOperation(input: CreateOperationInput): Promise<Operation> {
     const service = await this.graphqlServiceRepository.findById(input.graphQLServiceId);
     if (!service) {
-      throw new Error("GraphQL Service not found");
+      throw new NotFoundError("GraphQL Service not found");
     }
 
-    const now = new Date();
-    const operation: Operation = {
-      id: randomUUID(),
-      ...input,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    };
-    return this.repository.create(operation);
+    const created = await this.repository.create(input);
+    logger.info({ operationId: created.id, name: created.name }, "Operation created");
+    return created;
   }
 
   async getOperations(): Promise<Operation[]> {
     return this.repository.findAll();
   }
 
-  async getOperationById(id: string): Promise<Operation | undefined> {
+  async getOperationById(id: string): Promise<Operation | null> {
     return this.repository.findById(id);
   }
 }

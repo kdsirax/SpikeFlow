@@ -1,7 +1,8 @@
-import { randomUUID } from "crypto";
 import type { IRoutingPolicyRepository } from "./routing-policy.repository.js";
 import type { IOperationRepository } from "../operation/operation.repository.js";
 import type { CreateRoutingPolicyInput, RoutingPolicy } from "./routing-policy.types.js";
+import { logger } from "../../shared/logger/logger.js";
+import { NotFoundError } from "../../shared/errors/NotFoundError.js";
 
 export class RoutingPolicyService {
   constructor(
@@ -12,24 +13,19 @@ export class RoutingPolicyService {
   async createRoutingPolicy(input: CreateRoutingPolicyInput): Promise<RoutingPolicy> {
     const operation = await this.operationRepository.findById(input.operationId);
     if (!operation) {
-      throw new Error("Operation not found");
+      throw new NotFoundError("Operation not found");
     }
 
-    const now = new Date();
-    const policy: RoutingPolicy = {
-      id: randomUUID(),
-      ...input,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    };
-    return this.repository.create(policy);
+    const created = await this.repository.create(input);
+    logger.info({ policyId: created.id, operationId: created.operationId }, "Routing policy created");
+    return created;
   }
 
   async getRoutingPolicies(): Promise<RoutingPolicy[]> {
     return this.repository.findAll();
   }
 
-  async getRoutingPolicyById(id: string): Promise<RoutingPolicy | undefined> {
+  async getRoutingPolicyById(id: string): Promise<RoutingPolicy | null> {
     return this.repository.findById(id);
   }
 }

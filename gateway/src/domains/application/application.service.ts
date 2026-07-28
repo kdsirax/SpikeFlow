@@ -1,7 +1,8 @@
-import { randomUUID } from "crypto";
 import type { IApplicationRepository } from "./application.repository.js";
 import type { IOrganizationRepository } from "../organization/organization.repository.js";
 import type { CreateApplicationInput, Application } from "./application.types.js";
+import { NotFoundError } from "../../shared/errors/NotFoundError.js";
+import { logger } from "../../shared/logger/logger.js";
 
 export class ApplicationService {
   constructor(
@@ -12,24 +13,19 @@ export class ApplicationService {
   async createApplication(input: CreateApplicationInput): Promise<Application> {
     const organization = await this.organizationRepository.findById(input.organizationId);
     if (!organization) {
-      throw new Error("Organization not found");
+      throw new NotFoundError("Organization not found");
     }
 
-    const now = new Date();
-    const application: Application = {
-      id: randomUUID(),
-      ...input,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    };
-    return this.repository.create(application);
+    const created = await this.repository.create(input);
+    logger.info({ applicationId: created.id, name: created.name }, "Application created");
+    return created;
   }
 
   async getApplications(): Promise<Application[]> {
     return this.repository.findAll();
   }
 
-  async getApplicationById(id: string): Promise<Application | undefined> {
+  async getApplicationById(id: string): Promise<Application | null> {
     return this.repository.findById(id);
   }
 }

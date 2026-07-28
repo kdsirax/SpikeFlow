@@ -3,6 +3,8 @@ import type { IRoutingPolicyRepository } from "../routing-policy/routing-policy.
 import type { MetricsService } from "../metrics/metrics.service.js";
 import type { RoutingDecision } from "./decison-engine.types.js";
 import { Runtime } from "../routing-policy/routing-policy.types.js";
+import { logger } from "../../shared/logger/logger.js";
+import { NotFoundError } from "../../shared/errors/NotFoundError.js";
 
 export class DecisionEngineService {
   constructor(
@@ -16,40 +18,40 @@ export class DecisionEngineService {
 
     const operation = await this.operationRepository.findById(operationId);
     if (!operation) {
-      throw new Error(`Operation not found with ID: ${operationId}`);
+      throw new NotFoundError(`Operation not found with ID: ${operationId}`);
     }
 
-    const policies = await this.routingPolicyRepository.findAll();
-    const policy = policies.find((p) => p.operationId === operationId);
+    const policy = await this.routingPolicyRepository.findByOperationId(operationId);
     if (!policy) {
-      throw new Error(`Routing policy not found for operation ID: ${operationId}`);
+      throw new NotFoundError(`Routing policy not found for operation ID: ${operationId}`);
     }
+
+    let decision: RoutingDecision;
 
     if (!policy.enabled) {
-      return {
+      decision = {
         runtime: policy.preferredRuntime || Runtime.DOCKER,
         reason: "Routing policy is disabled; defaulting to preferred runtime",
       };
-    }
-
-    if (metrics.cpuUsage > policy.cpuThreshold) {
-      return {
+    } else if (metrics.cpuUsage > policy.cpuThreshold) {
+      decision = {
         runtime: Runtime.SERVERLESS,
         reason: `CPU usage (${metrics.cpuUsage}%) exceeded policy threshold (${policy.cpuThreshold}%)`,
       };
-    }
-
-    if (metrics.requestsPerMinute > policy.requestThreshold) {
-      return {
+    } else if (metrics.requestsPerMinute > policy.requestThreshold) {
+      decision = {
         runtime: Runtime.SERVERLESS,
         reason: `Requests per minute (${metrics.requestsPerMinute}) exceeded policy threshold (${policy.requestThreshold})`,
       };
+    } else {
+      decision = {
+        runtime: Runtime.DOCKER,
+        reason: "Metrics are within acceptable thresholds for Docker runtime",
+      };
     }
 
-    return {
-      runtime: Runtime.DOCKER,
-      reason: "Metrics are within acceptable thresholds for Docker runtime",
-    };
+    logger.info({ operationId, runtime: decision.runtime, reason: decision.reason }, "Decision made");
+    return decision;
   }
 
   async makeDecision(operationId: string): Promise<RoutingDecision> {

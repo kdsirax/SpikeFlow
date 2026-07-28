@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OperationType {
+  QUERY
+  MUTATION
+}
+
+enum EstimatedCost {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Runtime {
+  DOCKER
+  SERVERLESS
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications Application[]
+}
+
+model Application {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  graphQLServices GraphQLService[]
+}
+
+model GraphQLService {
+  id          String   @id @default(uuid())
+  name        String
+  endpoint    String
+  environment String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+
+  operations Operation[]
+}
+
+model Operation {
+  id               String        @id @default(uuid())
+  name             String
+  type             OperationType
+  estimatedCost    EstimatedCost
+  cacheable        Boolean
+  requiresDatabase Boolean
+  priority         Priority
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  graphQLServiceId String
+  graphQLService   GraphQLService @relation(fields: [graphQLServiceId], references: [id])
+
+  routingPolicy RoutingPolicy?
+}
+
+model RoutingPolicy {
+  id               String   @id @default(uuid())
+  preferredRuntime Runtime
+  cpuThreshold     Float
+  requestThreshold Int
+  enabled          Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  operationId String    @unique
+  operation   Operation @relation(fields: [operationId], references: [id])
+}
