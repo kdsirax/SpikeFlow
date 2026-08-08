@@ -14,7 +14,8 @@ export class DecisionEngineService {
   ) {}
 
   async makeRoutingDecision(operationId: string): Promise<RoutingDecision> {
-    const metrics = this.metricsService.getMetrics();
+    // ── Collect real system metrics ────────────────────────────────────────
+    const metrics = await this.metricsService.getSystemMetrics();
 
     const operation = await this.operationRepository.findById(operationId);
     if (!operation) {
@@ -25,6 +26,18 @@ export class DecisionEngineService {
     if (!policy) {
       throw new NotFoundError(`Routing policy not found for operation ID: ${operationId}`);
     }
+
+    logger.debug(
+      {
+        operationId,
+        cpuUsage: metrics.cpuUsage,
+        memoryPercent: metrics.memoryUsage.usagePercent,
+        cpuThreshold: policy.cpuThreshold,
+        requestThreshold: policy.requestThreshold,
+        metricsTimestamp: metrics.timestamp,
+      },
+      "Evaluating routing policy against real metrics"
+    );
 
     let decision: RoutingDecision;
 
@@ -38,15 +51,16 @@ export class DecisionEngineService {
         runtime: Runtime.SERVERLESS,
         reason: `CPU usage (${metrics.cpuUsage}%) exceeded policy threshold (${policy.cpuThreshold}%)`,
       };
-    } else if (metrics.requestsPerMinute > policy.requestThreshold) {
+    } else if (metrics.memoryUsage.usagePercent > policy.requestThreshold) {
+      // requestThreshold is reused as a memory% threshold until schema is extended
       decision = {
         runtime: Runtime.SERVERLESS,
-        reason: `Requests per minute (${metrics.requestsPerMinute}) exceeded policy threshold (${policy.requestThreshold})`,
+        reason: `Memory usage (${metrics.memoryUsage.usagePercent}%) exceeded policy threshold (${policy.requestThreshold}%)`,
       };
     } else {
       decision = {
         runtime: Runtime.DOCKER,
-        reason: "Metrics are within acceptable thresholds for Docker runtime",
+        reason: `Metrics within thresholds — CPU ${metrics.cpuUsage}%, Memory ${metrics.memoryUsage.usagePercent}%`,
       };
     }
 

@@ -1,6 +1,9 @@
 import { ApolloServer } from "@apollo/server";
 import { unwrapResolverError } from "@apollo/server/errors";
 import { startStandaloneServer } from "@apollo/server/standalone";
+import express from "express";
+import cors from "cors";
+
 
 import { AppError } from "./shared/errors/AppError.js";
 
@@ -35,6 +38,9 @@ import { DecisionEngineService } from "./domains/decision-engine/decision-engine
 import { MetricsService } from "./domains/metrics/metrics.service.js";
 import { RuntimeService } from "./domains/runtime/runtime.service.js";
 
+import { gatewayRouter } from "./domains/gateway/gateway.router.js";
+import { cacheService } from "./shared/cache/cache.service.js";
+
 import { logger } from "./shared/logger/logger.js";
 
 // Initialize repositories and services
@@ -45,13 +51,13 @@ const applicationRepository = new PrismaApplicationRepository();
 const applicationService = new ApplicationService(applicationRepository, organizationRepository);
 
 const graphqlServiceRepository = new PrismaGraphQLServiceRepository();
-const graphqlServiceService = new GraphQLServiceService(graphqlServiceRepository, applicationRepository);
+const graphqlServiceService = new GraphQLServiceService(graphqlServiceRepository, applicationRepository, cacheService);
 
 const operationRepository = new PrismaOperationRepository();
-const operationService = new OperationService(operationRepository, graphqlServiceRepository);
+const operationService = new OperationService(operationRepository, graphqlServiceRepository, cacheService);
 
 const routingPolicyRepository = new PrismaRoutingPolicyRepository();
-const routingPolicyService = new RoutingPolicyService(routingPolicyRepository, operationRepository);
+const routingPolicyService = new RoutingPolicyService(routingPolicyRepository, operationRepository, cacheService);
 
 const metricsService = new MetricsService();
 const decisionEngineService = new DecisionEngineService(operationRepository, routingPolicyRepository, metricsService);
@@ -95,7 +101,7 @@ const resolvers = {
   },
 };
 
-// Create Apollo Server instance
+// Create Apollo Server instance (management API)
 export const server = new ApolloServer<GraphQLContext>({
   typeDefs,
   resolvers,
@@ -114,8 +120,27 @@ export const server = new ApolloServer<GraphQLContext>({
   },
 });
 
-// Start standalone server
+// ─── Gateway Express app (POST /gateway forwarding proxy) ────────────────────
+function startGatewayServer() {
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
+
+  // Step 1: POST /gateway — accepts any GraphQL query and forwards it upstream
+  app.use("/gateway", gatewayRouter);
+
+  const GATEWAY_PORT = 4001;
+  app.listen(GATEWAY_PORT, () => {
+    logger.info(`   • GraphQL forwarding proxy →  http://localhost:${GATEWAY_PORT}/gateway`);
+  });
+}
+
+// ─── Apollo management API (GraphQL Studio) ──────────────────────────────────
 export async function startServer() {
+  // Start the Express gateway on port 4001
+  startGatewayServer();
+
+  // Start Apollo's standalone server on port 4000
   const { url } = await startStandaloneServer(server, {
     context: async () => ({
       organizationService,
@@ -128,5 +153,7 @@ export async function startServer() {
     }),
     listen: { port: 4000 },
   });
-  logger.info(`🚀 Application started: Server ready at ${url}`);
+
+  logger.info(`🚀 Application started:`);
+  logger.info(`   • GraphQL management API  →  ${url}`);
 }
