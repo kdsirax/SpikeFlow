@@ -1,5 +1,22 @@
-node_modules/
+# Environment
 .env
+.env.local
+.env.docker
+
+# Node
+node_modules/
+
+# Build
+dist/
+
+# Logs
+logs/
 *.log
-*.txt
-/src/generated/prisma
+
+# Docker
+postgres_data/
+redis_data/
+
+# OS
+.DS_Store
+Thumbs.db
