@@ -1,1 +1,0 @@
-{"version":3,"file":"serverless.executor.js","sourceRoot":"","sources":["../../../src/domains/runtime/serverless.executor.ts"],"names":[],"mappings":"AAEA,MAAM,OAAO,kBAAkB;IAC7B,KAAK,CAAC,OAAO,CAAC,QAA0B;QACtC,OAAO;YACL,OAAO,EAAE,IAAI;YACb,IAAI,EAAE,2BAA2B;SAClC,CAAC;IACJ,CAAC;CACF"}

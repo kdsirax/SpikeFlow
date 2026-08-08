@@ -1,103 +1,66 @@
-import { parse, getOperationAST } from "graphql";
-import type { IOperationRepository } from "../operation/operation.repository.js";
-import type { IGraphQLServiceRepository } from "../graphql-service/graphql-service.repository.js";
-import type { DecisionEngineService } from "../decision-engine/decision-engine.service.js";
+import crypto from "crypto";
+import { GraphQLParserService } from "./graphql-parser.service.js";
+import { RequestResolverService } from "./request-resolver.service.js";
+import { DecisionEngineService } from "../decision-engine/decision-engine.service.js";
+import { RuntimeService } from "../runtime/runtime.service.js";
 import type { GatewayForwardRequest, GatewayForwardResult } from "./gateway.types.js";
-import type { Operation } from "../operation/operation.types.js";
-import type { GraphQLService } from "../graphql-service/graphql-service.types.js";
-import type { RoutingPolicy } from "../routing-policy/routing-policy.types.js";
-import { CacheKeys, CacheService, CACHE_TTL_SECONDS } from "../../shared/cache/cache.service.js";
-import { NotFoundError } from "../../shared/errors/NotFoundError.js";
 import { logger } from "../../shared/logger/logger.js";
 
 export class GatewayService {
   constructor(
-    private readonly operationRepository: IOperationRepository,
-    private readonly graphqlServiceRepository: IGraphQLServiceRepository,
+    private readonly graphqlParserService: GraphQLParserService,
+    private readonly requestResolverService: RequestResolverService,
     private readonly decisionEngineService: DecisionEngineService,
-    private readonly cache: CacheService
+    private readonly runtimeService: RuntimeService
   ) {}
 
+  /**
+   * Orchestrates automatic GraphQL request resolution and forwarding:
+   * 1. Generates / captures request ID and starts telemetry timer.
+   * 2. Parses query AST to extract operation name and type.
+   * 3. Resolves operation metadata, routing policy, and GraphQL service via Redis / Postgres.
+   * 4. Evaluates system metrics (CPU, Memory) via Decision Engine.
+   * 5. Forwards GraphQL payload to upstream service endpoint.
+   * 6. Emits structured telemetry log via Pino.
+   * 7. Returns upstream response verbatim.
+   */
   async forward(request: GatewayForwardRequest): Promise<GatewayForwardResult> {
-    const { query, variables, operationName: clientOperationName } = request;
+    const requestId = request.requestId || crypto.randomUUID();
+    const startTime = Date.now();
+    const { query, variables } = request;
 
-    // ── Step 1: Parse query AST → extract operation name ────────────────────
-    let operationName: string;
+    // ── Phase 1: Parse GraphQL Query AST ───────────────────────────────────
+    const { operationType, operationName } = this.graphqlParserService.parse(query);
 
-    if (clientOperationName) {
-      operationName = clientOperationName;
-    } else {
-      let document;
-      try {
-        document = parse(query);
-      } catch (err) {
-        throw new Error(`Invalid GraphQL query: ${(err as Error).message}`);
-      }
+    logger.debug({ requestId, operationName, operationType }, "Extracted GraphQL operation from query AST");
 
-      const operationAST = getOperationAST(document, null);
-      if (!operationAST?.name?.value) {
-        throw new Error(
-          "Gateway requires a named GraphQL operation. " +
-          "Use `query GetProducts { ... }` instead of `{ getProducts { ... } }`."
-        );
-      }
-      operationName = operationAST.name.value;
-    }
+    // ── Phase 2 & 4: Resolve Request via Redis / Postgres ──────────────────
+    const { operation, routingPolicy, graphqlService, cacheHit } =
+      await this.requestResolverService.resolve(operationName);
 
-    logger.info({ operationName }, "Parsed operation name from query");
-
-    // ── Step 2: Operation  →  Redis? → Postgres → store in Redis ─────────────
-    const operationKey = CacheKeys.operation(operationName);
-    let operation = await this.cache.get<Operation>(operationKey);
-
-    if (!operation) {
-      logger.debug({ operationName }, "Operation cache miss — querying Postgres");
-      operation = await this.operationRepository.findByName(operationName);
-      if (!operation) {
-        throw new NotFoundError(`Operation "${operationName}" is not registered in the gateway`);
-      }
-      await this.cache.set(operationKey, operation, CACHE_TTL_SECONDS);
-    }
-
-    logger.info(
-      { operationName, operationId: operation.id, graphQLServiceId: operation.graphQLServiceId },
-      "Operation resolved"
-    );
-
-    // ── Step 3: Decision Engine  (routing policy lookup is inside, cached below)
+    // ── Phase 5: Runtime Decision (CPU + Memory evaluation) ─────────────────
     const decision = await this.decisionEngineService.makeRoutingDecision(operation.id);
 
-    logger.info(
-      { operationName, runtime: decision.runtime, reason: decision.reason },
-      "Routing decision made"
+    const forwardUrl = graphqlService.endpoint;
+
+    logger.debug(
+      {
+        requestId,
+        operationName,
+        serviceName: graphqlService.name,
+        runtime: decision.runtime,
+        forwardUrl,
+      },
+      "Prepared upstream forwarding"
     );
 
-    // ── Step 4: GraphQLService  →  Redis? → Postgres → store in Redis ─────────
-    const serviceKey = CacheKeys.graphqlService(operation.graphQLServiceId);
-    let service = await this.cache.get<GraphQLService>(serviceKey);
-
-    if (!service) {
-      logger.debug({ graphQLServiceId: operation.graphQLServiceId }, "GraphQLService cache miss — querying Postgres");
-      service = await this.graphqlServiceRepository.findById(operation.graphQLServiceId);
-      if (!service) {
-        throw new NotFoundError(`GraphQL service with ID "${operation.graphQLServiceId}" not found`);
-      }
-      await this.cache.set(serviceKey, service, CACHE_TTL_SECONDS);
-    }
-
-    const { endpoint, name: serviceName } = service;
-
-    logger.info(
-      { operationName, serviceName, endpoint, runtime: decision.runtime },
-      "Forwarding GraphQL request to upstream service"
-    );
-
-    // ── Step 5: Forward the exact GraphQL request ────────────────────────────
-    const upstreamResponse = await fetch(endpoint, {
+    // ── Forward Request to Upstream GraphQL Service ─────────────────────────
+    const upstreamResponse = await fetch(forwardUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        "x-request-id": requestId,
       },
       body: JSON.stringify({
         query,
@@ -108,7 +71,14 @@ export class GatewayService {
 
     if (!upstreamResponse.ok) {
       logger.error(
-        { serviceName, endpoint, status: upstreamResponse.status },
+        {
+          requestId,
+          operationName,
+          serviceName: graphqlService.name,
+          forwardUrl,
+          status: upstreamResponse.status,
+          statusText: upstreamResponse.statusText,
+        },
         "Upstream GraphQL service returned a non-2xx status"
       );
       throw new Error(
@@ -116,12 +86,23 @@ export class GatewayService {
       );
     }
 
-    // ── Step 6: Return the upstream response verbatim ────────────────────────
     const result = (await upstreamResponse.json()) as GatewayForwardResult;
+    const responseTimeMs = Date.now() - startTime;
 
+    // ── Phase 8: Structured Telemetry Logging ──────────────────────────────
     logger.info(
-      { operationName, serviceName, hasErrors: Array.isArray(result.errors) && result.errors.length > 0 },
-      "Received response from upstream service"
+      {
+        requestId,
+        operationName,
+        cacheStatus: cacheHit ? "HIT" : "MISS",
+        graphqlService: graphqlService.name,
+        cpu: `${decision.cpuUsage ?? 0}%`,
+        memory: `${decision.memoryPercent ?? 0}%`,
+        runtimeSelected: decision.runtime,
+        forwardUrl,
+        responseTime: `${responseTimeMs}ms`,
+      },
+      "GraphQL request resolved and forwarded successfully"
     );
 
     return result;

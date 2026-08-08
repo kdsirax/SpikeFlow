@@ -1,7 +1,8 @@
 export interface GatewayForwardRequest {
   query: string;
   variables?: Record<string, unknown>;
-  operationName?: string; // optional client override; otherwise parsed from query AST
+  operationName?: string; // optional override; otherwise parsed from query AST
+  requestId?: string; // optional tracing ID; generated if omitted
 }
 
 export interface GatewayForwardResult {

@@ -45,22 +45,30 @@ export class DecisionEngineService {
       decision = {
         runtime: policy.preferredRuntime || Runtime.DOCKER,
         reason: "Routing policy is disabled; defaulting to preferred runtime",
+        cpuUsage: metrics.cpuUsage,
+        memoryPercent: metrics.memoryUsage.usagePercent,
       };
     } else if (metrics.cpuUsage > policy.cpuThreshold) {
       decision = {
         runtime: Runtime.SERVERLESS,
         reason: `CPU usage (${metrics.cpuUsage}%) exceeded policy threshold (${policy.cpuThreshold}%)`,
+        cpuUsage: metrics.cpuUsage,
+        memoryPercent: metrics.memoryUsage.usagePercent,
       };
     } else if (metrics.memoryUsage.usagePercent > policy.requestThreshold) {
       // requestThreshold is reused as a memory% threshold until schema is extended
       decision = {
         runtime: Runtime.SERVERLESS,
         reason: `Memory usage (${metrics.memoryUsage.usagePercent}%) exceeded policy threshold (${policy.requestThreshold}%)`,
+        cpuUsage: metrics.cpuUsage,
+        memoryPercent: metrics.memoryUsage.usagePercent,
       };
     } else {
       decision = {
         runtime: Runtime.DOCKER,
         reason: `Metrics within thresholds — CPU ${metrics.cpuUsage}%, Memory ${metrics.memoryUsage.usagePercent}%`,
+        cpuUsage: metrics.cpuUsage,
+        memoryPercent: metrics.memoryUsage.usagePercent,
       };
     }
 

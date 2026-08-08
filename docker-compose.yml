@@ -7,9 +7,9 @@ services:
     restart: unless-stopped
 
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: khushal3526
-      POSTGRES_DB: spikeflow
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
 
     ports:
       - "5432:5432"
@@ -48,6 +48,27 @@ services:
 
     ports:
       - "4000:4000"
+
+    working_dir: /app
+
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+
+    container_name: product-service
+
+    restart: unless-stopped
+
+    depends_on:
+      - postgres
+
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      PORT: 5000
+
+    ports:
+      - "5000:5000"
 
     working_dir: /app
 

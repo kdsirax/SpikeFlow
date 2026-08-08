@@ -12,6 +12,7 @@ export const CacheKeys = {
   operation: (operationName: string) => `operation:${operationName}`,
   graphqlService: (id: string) => `graphql-service:${id}`,
   routingPolicy: (operationId: string) => `routing-policy:${operationId}`,
+  resolvedRequest: (operationName: string) => `resolved-request:${operationName}`,
 } as const;
 
 export class CacheService {

@@ -36,7 +36,10 @@ export class OperationService {
    * Pattern: Update DB → Delete cache → next request reloads from Postgres.
    */
   async invalidateCacheByName(operationName: string): Promise<void> {
-    await this.cache.delete(CacheKeys.operation(operationName));
+    await Promise.all([
+      this.cache.delete(CacheKeys.operation(operationName)),
+      this.cache.delete(CacheKeys.resolvedRequest(operationName)),
+    ]);
     logger.info({ operationName }, "Operation cache invalidated");
   }
 }

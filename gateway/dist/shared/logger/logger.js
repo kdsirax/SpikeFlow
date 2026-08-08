@@ -1,8 +1,0 @@
-import pino from "pino";
-export const logger = pino({
-    transport: {
-        target: "pino-pretty",
-        options: { singleLine: false, colorize: true },
-    },
-});
-//# sourceMappingURL=logger.js.map

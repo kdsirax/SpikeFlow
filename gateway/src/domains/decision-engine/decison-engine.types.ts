@@ -6,4 +6,6 @@ export type { SystemMetrics };
 export interface RoutingDecision {
   runtime: Runtime;
   reason: string;
+  cpuUsage?: number;
+  memoryPercent?: number;
 }
