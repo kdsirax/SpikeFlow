@@ -1,98 +1,83 @@
-# Routing & Decision Engine
+# SpikeFlow Intelligent Decision Engine & Heuristic Matrix
 
-The core differentiator of SpikeFlow is its **Intelligent Decision Engine**, which dynamically routes operations to the most appropriate runtime environment (Docker Containers vs. Serverless Functions). 
+## 1. Engine Objective
 
-This document outlines the routing algorithms, rules, and telemetry inputs that drive these decisions.
-
----
-
-## 1. Decision Inputs
-
-The Decision Engine processes three streams of real-time metadata before deciding where to execute a GraphQL operation:
+The **SpikeFlow Decision Engine** serves as the dynamic brains of the execution layer. It continuously synthesizes multidimensional inputs—operation complexity, database affinity, real-time hardware telemetry, and declarative routing policies—to orchestrate GraphQL query execution across heterogeneous compute targets.
 
 ```
-┌───────────────────────────┐      ┌───────────────────────────┐      ┌───────────────────────────┐
-│    Operation Metadata     │      │   Service Health State    │      │    Traffic Telemetry      │
-├───────────────────────────┤      ├───────────────────────────┤      ├───────────────────────────┤
-│ • Estimated Cost (1-100)  │      │ • Container CPU/Mem       │      │ • Requests/Min (RPM)      │
-│ • Database Requirement   │      │ • Container Connection Pool│      │ • Surge Event Flags       │
-│ • Preferred Runtime       │      │ • Response Latencies      │      │ • Active Rate Limits      │
-└─────────────┬─────────────┘      └─────────────┬─────────────┘      └─────────────┬─────────────┘
-              │                                  │                                  │
-              └──────────────────────────────────┼──────────────────────────────────┘
-                                                 ▼
-                                    ┌───────────────────────────┐
-                                    │      Decision Engine      │
-                                    └────────────┬──────────────┘
-                                                 │
-                                                 ▼
-                                     [ Docker vs. Serverless ]
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           DECISION INPUT VECTORS                            │
+├──────────────────────────────┬──────────────────────────────┬───────────────┤
+│    Operation Complexity      │     Hardware Telemetry       │ Routing Policy│
+├──────────────────────────────┼──────────────────────────────┼───────────────┤
+│ • Estimated Cost (LOW/MED/HI)│ • CPU Utilization (%)        │ • Preferred   │
+│ • Database Affinity (Boolean)│ • Memory Utilization (%)     │ • CPU Limit   │
+│ • Priority Level (LOW/MED/HI)│ • Request Velocity (RPM)     │ • Req Limit   │
+│ • Cacheability Flag          │ • Host Thermal/Load Average  │ • Active Flag │
+└──────────────────────────────┴──────────────────────────────┴───────────────┘
+                                       │
+                                       ▼
+                       ┌───────────────────────────────┐
+                       │    DecisionEngineService      │
+                       │ (Heuristic Evaluation Matrix) │
+                       └───────────────┬───────────────┘
+                                       │
+                                       ▼
+                       ┌───────────────────────────────┐
+                       │       RuntimeDecision         │
+                       │ • Target Runtime (DOCKER/FaaS)│
+                       │ • Diagnostic Explanation      │
+                       │ • Instantaneous Telemetry     │
+                       └───────────────────────────────┘
 ```
 
 ---
 
-## 2. The Routing Algorithm
+## 2. Dynamic Evaluation Algorithm
 
-Routing is determined using a hybrid strategy: a fast **Rule-Based Pass** followed by a **Dynamic Scoring Evaluation** if rules indicate `DYNAMIC` runtime.
+The evaluation sequence proceeds through two rigorous algorithmic phases:
 
-### 2.2 Phase 1: Hard Rule Filters
-Certain operations bypass dynamic scoring due to functional constraints:
-- **Database Dependency:** If an operation writes state (Mutation) and requires high-throughput database transactions, it is pinned to **Docker** to avoid serverless database connection pool exhaustion.
-- **Manual Overrides:** Users can set rules like `ALWAYS_SERVERLESS` or `ALWAYS_DOCKER` to lock an operation's destination.
+### Phase 1: Policy & State Feasibility Check
+1. **Disabled Policy Fallback:** If the operation lacks a policy or `enabled === false`, the engine immediately defaults to `preferredRuntime` (or `DOCKER`) with the reason:
+   $$\text{Reason: "Routing policy is disabled; defaulting to preferred runtime"}$$
+2. **Stateful Database Pinning:** Mutations and transactional queries requiring relational database connection pool affinity are prioritized on containerized environments to prevent serverless connection starvation.
 
-### 2.2 Phase 2: Dynamic Scoring Evaluation
-For operations configured with `DYNAMIC` runtimes, a heuristic score is calculated:
-
-$$\text{Routing Score} = (W_{\text{cost}} \times \text{Cost}) + (W_{\text{cpu}} \times \text{CPU}_{\text{Docker}}) + (W_{\text{traffic}} \times \text{TrafficSpike})$$
-
-If the score exceeds a configurable threshold (e.g., $Score \ge 70$), the query is routed to **Serverless** to offload containers.
-
----
-
-## 3. Dynamic Routing Decision Logic Matrix
-
-| Operation Priority | Database Req. | CPU Load (Docker) | Traffic Spike Status | Destination | Reason for Decision |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **High** (Write) | Yes | Any | Normal | **Docker** | Core write transaction with DB pool constraints |
-| **Low** (Fuzzy Search)| No | Normal | Normal | **Serverless**| Compute intensive, no DB dependency |
-| **Medium** (Reads) | Yes | < 70% | Normal | **Docker** | Within healthy container operating limits |
-| **Medium** (Reads) | Yes | **> 70%** | Normal | **Serverless**| Offloaded to Serverless due to Docker container strain |
-| **Any** | No | Any | **Spike Detected** | **Serverless**| Failover active: offloading read queries to Lambda |
-| **Low** (Metrics) | No | > 85% | Spike Detected | **Dropped** | Rate limit/backoff activated during critical load |
+### Phase 2: Telemetry Threshold Comparison
+1. Interrogates instantaneous host CPU load percentage: $CPU_{\text{current}}$.
+2. Compares against the user-configured policy threshold: $CPU_{\text{threshold}}$.
+3. **Threshold Breach (Failover Trigger):**
+   $$\text{If } CPU_{\text{current}} > CPU_{\text{threshold}} \implies \text{Runtime} = \text{SERVERLESS}$$
+   $$\text{Reason: "CPU usage } (CPU_{\text{current}}\%) \text{ exceeded policy threshold } (CPU_{\text{threshold}}\%)"$$
+4. **Nominal State (Baseline Execution):**
+   $$\text{If } CPU_{\text{current}} \le CPU_{\text{threshold}} \implies \text{Runtime} = \text{preferredRuntime}$$
+   $$\text{Reason: "Metrics within thresholds — CPU } CPU_{\text{current}}\%, \text{ Memory } Mem_{\text{current}}\%"$$
 
 ---
 
-## 4. Spike Detection Engine
-SpikeFlow tracks throughput on a rolling window. 
+## 3. Comprehensive Decision Matrix
 
-```javascript
-// Example pseudo-logic inside Gateway Middleware
-function detectTrafficSpike(currentRPM, baseRPM) {
-  const SPIKE_THRESHOLD = 3.0; // 3x baseline traffic
-  return (currentRPM / baseRPM) > SPIKE_THRESHOLD;
+| Operation Type | Cost | DB Affinity | Priority | Host CPU | Policy Status | Orchestration Target | Telemetry Reason |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `MUTATION` | `HIGH` | `true` | `HIGH` | $25\%$ | Active | **Docker** | Core write transaction pinned to maintain DB connection pool |
+| `MUTATION` | `HIGH` | `true` | `HIGH` | $92\%$ | Active | **Docker** | Core write transaction preserved on container despite high CPU |
+| `QUERY` | `LOW` | `true` | `MEDIUM` | $35\%$ | Active ($\le 80\%$) | **Docker** | Metrics within thresholds — CPU 35%, Memory 40% |
+| `QUERY` | `LOW` | `true` | `MEDIUM` | $88\%$ | Active ($> 80\%$) | **Serverless** | CPU usage (88%) exceeded policy threshold (80%) |
+| `QUERY` | `HIGH` | `false` | `LOW` | Any | Serverless Pref. | **Serverless** | High-compute stateless query dispatched to auto-scaling FaaS |
+| `QUERY` | `MEDIUM`| `true` | `MEDIUM` | $85\%$ | Disabled | **Docker** | Routing policy is disabled; defaulting to preferred runtime |
+
+---
+
+## 4. Structured Output Contract
+
+The decision engine produces a strongly-typed `RuntimeDecision` contract returned to the gateway orchestration pipeline:
+
+```typescript
+export interface RuntimeDecision {
+  runtime: Runtime | string;
+  reason: string;
+  cpuUsage: number;
+  memoryPercent: number;
 }
 ```
 
-When a spike is detected:
-1. The engine enters **Failover Mode**.
-2. All non-essential, stateless read queries (e.g. product listings, reports) are forced onto Serverless.
-3. Core write transactions (e.g. checkouts) remain on Docker, now protected from search query traffic.
-
----
-
-## 5. Routing Log and Explanations
-To ensure transparency, every decision writes a record back to the database. These records populate the developer dashboard:
-
-```json
-{
-  "requestId": "req_8817a9bc",
-  "operationName": "searchProducts",
-  "destination": "SERVERLESS",
-  "responseTime": 120,
-  "status": "SUCCESS",
-  "reason": "DOCKER_CPU_HIGH: Container CPU utilization is at 84%. Query offloaded to Serverless Function.",
-  "timestamp": "2026-07-03T13:00:15Z"
-}
-```
-> [!TIP]
-> Use the reason codes to refine operation metadata. If an operation runs slowly on Serverless due to cold starts, adjust its priority to lock it to Docker.
+This diagnostic record is persisted directly into the `ExecutionHistory` table and rendered in the Developer Management Dashboard to provide full transparency into routing decisions.

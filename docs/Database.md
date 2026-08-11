@@ -1,108 +1,112 @@
-# Database Schema & Data Models
+# SpikeFlow Database Architecture & Data Modeling Specification
 
-SpikeFlow uses a hybrid storage layer:
-- **Persistent Store (PostgreSQL):** For system configurations, application metadata, routing rules, and historical metrics/analytics.
-- **Cache/In-Memory Store (Redis):** For rate limiting counters, system status caches, and temporary request queues.
+## 1. Storage Architecture Overview
+
+SpikeFlow employs a dual-tiered data persistence strategy combining:
+- **Persistent Relational Store (PostgreSQL 17):** Governs multi-tenant configuration, metadata hierarchies, routing policies, and audit logs.
+- **Fast-Path In-Memory Store (Redis 8):** Caches resolved query tuples, service metadata, and performance-critical gateway lookups.
 
 ---
 
-## 1. Entity Relationship Overview
+## 2. Relational Entity Schema (PostgreSQL via Prisma ORM)
 
+```mermaid
+erDiagram
+    Organization ||--o{ Application : has
+    Application ||--o{ GraphQLService : contains
+    GraphQLService ||--o{ Operation : exposes
+    Operation ||--o| RoutingPolicy : governed_by
+    Operation ||--o{ ExecutionHistory : logged_as
+
+    Organization {
+        string id PK "UUID"
+        string name "Tenant name"
+        string slug UK "Unique slug identifier"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Application {
+        string id PK "UUID"
+        string organizationId FK
+        string name "Application name"
+        string description "Optional description"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    GraphQLService {
+        string id PK "UUID"
+        string applicationId FK
+        string name "Microservice name"
+        string endpoint "Upstream URL"
+        string environment "development | staging | production"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Operation {
+        string id PK "UUID"
+        string graphQLServiceId FK
+        string name "Canonical AST name"
+        enum type "QUERY | MUTATION"
+        enum estimatedCost "LOW | MEDIUM | HIGH"
+        boolean cacheable "Redis response caching"
+        boolean requiresDatabase "DB connection requirement"
+        enum priority "LOW | MEDIUM | HIGH"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    RoutingPolicy {
+        string id PK "UUID"
+        string operationId FK, UK "1:1 Operation relation"
+        enum preferredRuntime "DOCKER | SERVERLESS"
+        float cpuThreshold "Threshold percentage (e.g. 80.0)"
+        int requestThreshold "Rate limit ceiling"
+        boolean enabled "Policy active toggle"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    ExecutionHistory {
+        string id PK "UUID"
+        string operationId FK
+        string runtimeChosen "DOCKER | SERVERLESS | KUBERNETES"
+        string decisionReason "Diagnostic explanation"
+        float cpuUsage "Host CPU % at execution"
+        float memoryUsage "Host Memory % at execution"
+        boolean cacheHit "Cache hit flag"
+        int responseTime "Latency in milliseconds"
+        string status "SUCCESS | FAILED"
+        datetime createdAt "Timestamp"
+    }
 ```
-┌─────────────────┐         ┌───────────┐         ┌───────────────────────┐
-│  Applications   │1       *│   APIs    │1       *│   OperationMetadata   │
-│ ────────────────│─────────│ ──────────│─────────│ ───────────────────── │
-│ • id (PK)       │         │ • id (PK) │         │ • id (PK)             │
-│ • name          │         │ • name    │         │ • operationName       │
-│ • owner         │         │ • endpoint│         │ • estimatedCost       │
-└────────┬────────┘         └───────────┘         └───────────────────────┘
-         │
-         │1
-         │
-         ▼ *
-┌─────────────────┐         ┌───────────┐
-│  RoutingRules   │         │ Requests  │ (Audit Log)
-│ ────────────────│         │ ───────── │
-│ • id (PK)       │         │ • id (PK) │
-│ • operationName │         │ • opName  │
-│ • destination   │         │ • dest    │
-│ • condition     │         │ • latency │
-└─────────────────┘         └───────────┘
+
+---
+
+## 3. Redis Caching Topology & Invalidation Strategy
+
+To achieve sub-millisecond query metadata resolution, SpikeFlow implements an active cache-aside pattern with automatic invalidation on updates.
+
+### 3.1 Cache Key Namespace Specifications
+
+| Cache Key Pattern | Data Structure | TTL | Purpose |
+| :--- | :--- | :--- | :--- |
+| `operation:{operationName}` | String (JSON) | 1 hour | Serialized `Operation` metadata |
+| `service:{serviceId}` | String (JSON) | 1 hour | Serialized `GraphQLService` connection parameters |
+| `routingPolicy:{operationId}` | String (JSON) | 1 hour | Serialized `RoutingPolicy` threshold configuration |
+| `resolved:{operationName}` | String (JSON) | 1 hour | Consolidated `{ operation, service, policy }` tuple |
+
+### 3.2 Invalidation Workflow
+Whenever an `Operation`, `GraphQLService`, or `RoutingPolicy` is modified via GraphQL mutations, SpikeFlow invalidates the primary key and the composite `resolved:<name>` key:
+
+```typescript
+// Pattern: Write to PostgreSQL -> Invalidate Redis -> Reload on next read
+async invalidateCacheByName(operationName: string): Promise<void> {
+  await Promise.all([
+    this.cache.delete(CacheKeys.operation(operationName)),
+    this.cache.delete(CacheKeys.resolvedRequest(operationName)),
+  ]);
+}
 ```
-
----
-
-## 2. Table Schemas (PostgreSQL)
-
-### 2.1 `applications`
-Stores registered client applications.
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `UUID` | Primary Key, Default: gen_random_uuid() | Unique identifier |
-| `name` | `VARCHAR(255)` | Not Null, Unique | Name of application |
-| `owner` | `VARCHAR(255)` | Not Null | Team/Owner email/identifier |
-| `created_at` | `TIMESTAMP` | Default: CURRENT_TIMESTAMP | Creation timestamp |
-
-### 2.2 `apis`
-Stores backend APIs registered under applications.
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `UUID` | Primary Key | Unique identifier |
-| `application_id` | `UUID` | Foreign Key -> `applications.id` ON DELETE CASCADE | Associated app |
-| `name` | `VARCHAR(255)` | Not Null | API Endpoint name |
-| `endpoint` | `TEXT` | Not Null | Full target gateway URL |
-
-### 2.3 `operation_metadata`
-Holds performance characteristics for routing evaluations.
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `UUID` | Primary Key | Unique identifier |
-| `api_id` | `UUID` | Foreign Key -> `apis.id` ON DELETE CASCADE | Associated API |
-| `operation_name` | `VARCHAR(255)`| Not Null, Unique | GraphQL Query/Mutation name |
-| `estimated_cost` | `INT` | Check (estimated_cost BETWEEN 1 AND 100) | Metric score for resource usage |
-| `cacheable` | `BOOLEAN` | Default: FALSE | Indicates if query result can be cached |
-| `requires_db` | `BOOLEAN` | Default: FALSE | Requires active database pool connections |
-| `priority` | `VARCHAR(50)` | Check (priority IN ('HIGH', 'MEDIUM', 'LOW')) | Priority class |
-| `preferred_runtime`| `VARCHAR(50)`| Check (preferred_runtime IN ('DOCKER', 'SERVERLESS', 'DYNAMIC')) | Execution runtime target |
-
-### 2.4 `routing_rules`
-Defines active policies for dynamic or fallback paths.
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `UUID` | Primary Key | Unique identifier |
-| `application_id` | `UUID` | Foreign Key -> `applications.id` | Target application scope |
-| `operation_name` | `VARCHAR(255)`| Not Null | Operation name to target |
-| `destination` | `VARCHAR(50)` | Check (destination IN ('DOCKER', 'SERVERLESS')) | Chosen destination |
-| `condition` | `TEXT` | Default: 'ALWAYS' | JSON or String conditional routing rule |
-| `enabled` | `BOOLEAN` | Default: TRUE | Active status of the rule |
-| `created_at` | `TIMESTAMP` | Default: CURRENT_TIMESTAMP | Rule creation time |
-
-### 2.5 `requests` (Audit Log)
-Log for historical tracking and analysis.
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `UUID` | Primary Key | Unique identifier |
-| `operation_name` | `VARCHAR(255)`| Not Null | Executed operation |
-| `destination` | `VARCHAR(50)` | Not Null | Where it executed (DOCKER/SERVERLESS) |
-| `response_time` | `INT` | Not Null | Execution time in ms |
-| `status` | `VARCHAR(50)` | Not Null (e.g. 'SUCCESS', 'FAILED')| Status code representation |
-| `reason` | `TEXT` | Not Null | Justification for routing route choice |
-| `timestamp` | `TIMESTAMP` | Default: CURRENT_TIMESTAMP | When request arrived |
-
----
-
-## 3. Redis Data Structures
-
-### 3.1 Rate Limiting (Key-Value)
-- **Key Format:** `ratelimit:{appId}:{operationName}:{clientId}`
-- **Value:** Integer count of requests in current window.
-- **Type:** String (with TTL expiration).
-- **TTL:** 60 seconds (rolling/fixed window).
-
-### 3.2 Service Health Cache (Hash)
-- **Key:** `services:{serviceName}`
-- **Fields:**
-  - `status`: `"HEALTHY"` | `"UNHEALTHY"`
-  - `cpuUsage`: Float (e.g., `45.2`)
-  - `memoryUsage`: Float (e.g., `68.1`)
-  - `lastHeartbeat`: Unix timestamp
