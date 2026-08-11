@@ -5,9 +5,11 @@ import { RequestResolverService } from "./request-resolver.service.js";
 import { PrismaOperationRepository } from "../operation/operation.repository.js";
 import { PrismaGraphQLServiceRepository } from "../graphql-service/graphql-service.repository.js";
 import { PrismaRoutingPolicyRepository } from "../routing-policy/routing-policy.repository.js";
+import { PrismaExecutionHistoryRepository } from "../execution-history/execution-history.repository.js";
+import { ExecutionHistoryService } from "../execution-history/execution-history.service.js";
 import { MetricsService } from "../metrics/metrics.service.js";
 import { DecisionEngineService } from "../decision-engine/decision-engine.service.js";
-import { RuntimeService } from "../runtime/runtime.service.js";
+import { RuntimeExecutorService } from "../runtime/runtime-executor.service.js";
 import { cacheService } from "../../shared/cache/cache.service.js";
 import { NotFoundError } from "../../shared/errors/NotFoundError.js";
 import { ValidationError } from "../../shared/errors/ValidationError.js";
@@ -18,13 +20,15 @@ import { logger } from "../../shared/logger/logger.js";
 const operationRepository = new PrismaOperationRepository();
 const graphqlServiceRepository = new PrismaGraphQLServiceRepository();
 const routingPolicyRepository = new PrismaRoutingPolicyRepository();
+const executionHistoryRepository = new PrismaExecutionHistoryRepository();
+const executionHistoryService = new ExecutionHistoryService(executionHistoryRepository);
 const metricsService = new MetricsService();
 const decisionEngineService = new DecisionEngineService(
   operationRepository,
   routingPolicyRepository,
   metricsService
 );
-const runtimeService = new RuntimeService(decisionEngineService);
+const runtimeExecutorService = new RuntimeExecutorService();
 const graphqlParserService = new GraphQLParserService();
 const requestResolverService = new RequestResolverService(
   operationRepository,
@@ -37,7 +41,8 @@ export const gatewayService = new GatewayService(
   graphqlParserService,
   requestResolverService,
   decisionEngineService,
-  runtimeService
+  runtimeExecutorService,
+  executionHistoryService
 );
 
 export function createGatewayRouter(customGatewayService: GatewayService = gatewayService): Router {
@@ -47,6 +52,8 @@ export function createGatewayRouter(customGatewayService: GatewayService = gatew
    * POST /gateway
    *
    * Sprint 20: Automatic GraphQL Request Resolution
+   * Sprint 22: Runtime Execution Engine
+   * Sprint 23: Execution Observability & History
    * The client sends a standard GraphQL payload (no serviceName needed):
    * {
    *   "query": "query GetProducts { products { id name } }",
@@ -78,7 +85,7 @@ export function createGatewayRouter(customGatewayService: GatewayService = gatew
           ...(requestId !== undefined && { requestId }),
         });
 
-        // Return the upstream response transparently
+        // Return the upstream / executor response transparently
         res.status(200).json(result);
       } catch (error) {
         if (error instanceof NotFoundError) {

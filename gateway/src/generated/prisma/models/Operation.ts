@@ -224,6 +224,7 @@ export type OperationWhereInput = {
   graphQLServiceId?: Prisma.StringFilter<"Operation"> | string
   graphQLService?: Prisma.XOR<Prisma.GraphQLServiceScalarRelationFilter, Prisma.GraphQLServiceWhereInput>
   routingPolicy?: Prisma.XOR<Prisma.RoutingPolicyNullableScalarRelationFilter, Prisma.RoutingPolicyWhereInput> | null
+  executionHistories?: Prisma.ExecutionHistoryListRelationFilter
 }
 
 export type OperationOrderByWithRelationInput = {
@@ -239,6 +240,7 @@ export type OperationOrderByWithRelationInput = {
   graphQLServiceId?: Prisma.SortOrder
   graphQLService?: Prisma.GraphQLServiceOrderByWithRelationInput
   routingPolicy?: Prisma.RoutingPolicyOrderByWithRelationInput
+  executionHistories?: Prisma.ExecutionHistoryOrderByRelationAggregateInput
 }
 
 export type OperationWhereUniqueInput = Prisma.AtLeast<{
@@ -257,6 +259,7 @@ export type OperationWhereUniqueInput = Prisma.AtLeast<{
   graphQLServiceId?: Prisma.StringFilter<"Operation"> | string
   graphQLService?: Prisma.XOR<Prisma.GraphQLServiceScalarRelationFilter, Prisma.GraphQLServiceWhereInput>
   routingPolicy?: Prisma.XOR<Prisma.RoutingPolicyNullableScalarRelationFilter, Prisma.RoutingPolicyWhereInput> | null
+  executionHistories?: Prisma.ExecutionHistoryListRelationFilter
 }, "id">
 
 export type OperationOrderByWithAggregationInput = {
@@ -303,6 +306,7 @@ export type OperationCreateInput = {
   updatedAt?: Date | string
   graphQLService: Prisma.GraphQLServiceCreateNestedOneWithoutOperationsInput
   routingPolicy?: Prisma.RoutingPolicyCreateNestedOneWithoutOperationInput
+  executionHistories?: Prisma.ExecutionHistoryCreateNestedManyWithoutOperationInput
 }
 
 export type OperationUncheckedCreateInput = {
@@ -317,6 +321,7 @@ export type OperationUncheckedCreateInput = {
   updatedAt?: Date | string
   graphQLServiceId: string
   routingPolicy?: Prisma.RoutingPolicyUncheckedCreateNestedOneWithoutOperationInput
+  executionHistories?: Prisma.ExecutionHistoryUncheckedCreateNestedManyWithoutOperationInput
 }
 
 export type OperationUpdateInput = {
@@ -331,6 +336,7 @@ export type OperationUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   graphQLService?: Prisma.GraphQLServiceUpdateOneRequiredWithoutOperationsNestedInput
   routingPolicy?: Prisma.RoutingPolicyUpdateOneWithoutOperationNestedInput
+  executionHistories?: Prisma.ExecutionHistoryUpdateManyWithoutOperationNestedInput
 }
 
 export type OperationUncheckedUpdateInput = {
@@ -345,6 +351,7 @@ export type OperationUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   graphQLServiceId?: Prisma.StringFieldUpdateOperationsInput | string
   routingPolicy?: Prisma.RoutingPolicyUncheckedUpdateOneWithoutOperationNestedInput
+  executionHistories?: Prisma.ExecutionHistoryUncheckedUpdateManyWithoutOperationNestedInput
 }
 
 export type OperationCreateManyInput = {
@@ -511,6 +518,20 @@ export type OperationUpdateOneRequiredWithoutRoutingPolicyNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OperationUpdateToOneWithWhereWithoutRoutingPolicyInput, Prisma.OperationUpdateWithoutRoutingPolicyInput>, Prisma.OperationUncheckedUpdateWithoutRoutingPolicyInput>
 }
 
+export type OperationCreateNestedOneWithoutExecutionHistoriesInput = {
+  create?: Prisma.XOR<Prisma.OperationCreateWithoutExecutionHistoriesInput, Prisma.OperationUncheckedCreateWithoutExecutionHistoriesInput>
+  connectOrCreate?: Prisma.OperationCreateOrConnectWithoutExecutionHistoriesInput
+  connect?: Prisma.OperationWhereUniqueInput
+}
+
+export type OperationUpdateOneRequiredWithoutExecutionHistoriesNestedInput = {
+  create?: Prisma.XOR<Prisma.OperationCreateWithoutExecutionHistoriesInput, Prisma.OperationUncheckedCreateWithoutExecutionHistoriesInput>
+  connectOrCreate?: Prisma.OperationCreateOrConnectWithoutExecutionHistoriesInput
+  upsert?: Prisma.OperationUpsertWithoutExecutionHistoriesInput
+  connect?: Prisma.OperationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OperationUpdateToOneWithWhereWithoutExecutionHistoriesInput, Prisma.OperationUpdateWithoutExecutionHistoriesInput>, Prisma.OperationUncheckedUpdateWithoutExecutionHistoriesInput>
+}
+
 export type OperationCreateWithoutGraphQLServiceInput = {
   id?: string
   name: string
@@ -522,6 +543,7 @@ export type OperationCreateWithoutGraphQLServiceInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   routingPolicy?: Prisma.RoutingPolicyCreateNestedOneWithoutOperationInput
+  executionHistories?: Prisma.ExecutionHistoryCreateNestedManyWithoutOperationInput
 }
 
 export type OperationUncheckedCreateWithoutGraphQLServiceInput = {
@@ -535,6 +557,7 @@ export type OperationUncheckedCreateWithoutGraphQLServiceInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   routingPolicy?: Prisma.RoutingPolicyUncheckedCreateNestedOneWithoutOperationInput
+  executionHistories?: Prisma.ExecutionHistoryUncheckedCreateNestedManyWithoutOperationInput
 }
 
 export type OperationCreateOrConnectWithoutGraphQLServiceInput = {
@@ -590,6 +613,7 @@ export type OperationCreateWithoutRoutingPolicyInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   graphQLService: Prisma.GraphQLServiceCreateNestedOneWithoutOperationsInput
+  executionHistories?: Prisma.ExecutionHistoryCreateNestedManyWithoutOperationInput
 }
 
 export type OperationUncheckedCreateWithoutRoutingPolicyInput = {
@@ -603,6 +627,7 @@ export type OperationUncheckedCreateWithoutRoutingPolicyInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   graphQLServiceId: string
+  executionHistories?: Prisma.ExecutionHistoryUncheckedCreateNestedManyWithoutOperationInput
 }
 
 export type OperationCreateOrConnectWithoutRoutingPolicyInput = {
@@ -632,6 +657,7 @@ export type OperationUpdateWithoutRoutingPolicyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   graphQLService?: Prisma.GraphQLServiceUpdateOneRequiredWithoutOperationsNestedInput
+  executionHistories?: Prisma.ExecutionHistoryUpdateManyWithoutOperationNestedInput
 }
 
 export type OperationUncheckedUpdateWithoutRoutingPolicyInput = {
@@ -645,6 +671,79 @@ export type OperationUncheckedUpdateWithoutRoutingPolicyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   graphQLServiceId?: Prisma.StringFieldUpdateOperationsInput | string
+  executionHistories?: Prisma.ExecutionHistoryUncheckedUpdateManyWithoutOperationNestedInput
+}
+
+export type OperationCreateWithoutExecutionHistoriesInput = {
+  id?: string
+  name: string
+  type: $Enums.OperationType
+  estimatedCost: $Enums.EstimatedCost
+  cacheable: boolean
+  requiresDatabase: boolean
+  priority: $Enums.Priority
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  graphQLService: Prisma.GraphQLServiceCreateNestedOneWithoutOperationsInput
+  routingPolicy?: Prisma.RoutingPolicyCreateNestedOneWithoutOperationInput
+}
+
+export type OperationUncheckedCreateWithoutExecutionHistoriesInput = {
+  id?: string
+  name: string
+  type: $Enums.OperationType
+  estimatedCost: $Enums.EstimatedCost
+  cacheable: boolean
+  requiresDatabase: boolean
+  priority: $Enums.Priority
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  graphQLServiceId: string
+  routingPolicy?: Prisma.RoutingPolicyUncheckedCreateNestedOneWithoutOperationInput
+}
+
+export type OperationCreateOrConnectWithoutExecutionHistoriesInput = {
+  where: Prisma.OperationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OperationCreateWithoutExecutionHistoriesInput, Prisma.OperationUncheckedCreateWithoutExecutionHistoriesInput>
+}
+
+export type OperationUpsertWithoutExecutionHistoriesInput = {
+  update: Prisma.XOR<Prisma.OperationUpdateWithoutExecutionHistoriesInput, Prisma.OperationUncheckedUpdateWithoutExecutionHistoriesInput>
+  create: Prisma.XOR<Prisma.OperationCreateWithoutExecutionHistoriesInput, Prisma.OperationUncheckedCreateWithoutExecutionHistoriesInput>
+  where?: Prisma.OperationWhereInput
+}
+
+export type OperationUpdateToOneWithWhereWithoutExecutionHistoriesInput = {
+  where?: Prisma.OperationWhereInput
+  data: Prisma.XOR<Prisma.OperationUpdateWithoutExecutionHistoriesInput, Prisma.OperationUncheckedUpdateWithoutExecutionHistoriesInput>
+}
+
+export type OperationUpdateWithoutExecutionHistoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumOperationTypeFieldUpdateOperationsInput | $Enums.OperationType
+  estimatedCost?: Prisma.EnumEstimatedCostFieldUpdateOperationsInput | $Enums.EstimatedCost
+  cacheable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  requiresDatabase?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  priority?: Prisma.EnumPriorityFieldUpdateOperationsInput | $Enums.Priority
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  graphQLService?: Prisma.GraphQLServiceUpdateOneRequiredWithoutOperationsNestedInput
+  routingPolicy?: Prisma.RoutingPolicyUpdateOneWithoutOperationNestedInput
+}
+
+export type OperationUncheckedUpdateWithoutExecutionHistoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumOperationTypeFieldUpdateOperationsInput | $Enums.OperationType
+  estimatedCost?: Prisma.EnumEstimatedCostFieldUpdateOperationsInput | $Enums.EstimatedCost
+  cacheable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  requiresDatabase?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  priority?: Prisma.EnumPriorityFieldUpdateOperationsInput | $Enums.Priority
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  graphQLServiceId?: Prisma.StringFieldUpdateOperationsInput | string
+  routingPolicy?: Prisma.RoutingPolicyUncheckedUpdateOneWithoutOperationNestedInput
 }
 
 export type OperationCreateManyGraphQLServiceInput = {
@@ -670,6 +769,7 @@ export type OperationUpdateWithoutGraphQLServiceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   routingPolicy?: Prisma.RoutingPolicyUpdateOneWithoutOperationNestedInput
+  executionHistories?: Prisma.ExecutionHistoryUpdateManyWithoutOperationNestedInput
 }
 
 export type OperationUncheckedUpdateWithoutGraphQLServiceInput = {
@@ -683,6 +783,7 @@ export type OperationUncheckedUpdateWithoutGraphQLServiceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   routingPolicy?: Prisma.RoutingPolicyUncheckedUpdateOneWithoutOperationNestedInput
+  executionHistories?: Prisma.ExecutionHistoryUncheckedUpdateManyWithoutOperationNestedInput
 }
 
 export type OperationUncheckedUpdateManyWithoutGraphQLServiceInput = {
@@ -698,6 +799,35 @@ export type OperationUncheckedUpdateManyWithoutGraphQLServiceInput = {
 }
 
 
+/**
+ * Count Type OperationCountOutputType
+ */
+
+export type OperationCountOutputType = {
+  executionHistories: number
+}
+
+export type OperationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  executionHistories?: boolean | OperationCountOutputTypeCountExecutionHistoriesArgs
+}
+
+/**
+ * OperationCountOutputType without action
+ */
+export type OperationCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OperationCountOutputType
+   */
+  select?: Prisma.OperationCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * OperationCountOutputType without action
+ */
+export type OperationCountOutputTypeCountExecutionHistoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ExecutionHistoryWhereInput
+}
+
 
 export type OperationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -712,6 +842,8 @@ export type OperationSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   graphQLServiceId?: boolean
   graphQLService?: boolean | Prisma.GraphQLServiceDefaultArgs<ExtArgs>
   routingPolicy?: boolean | Prisma.Operation$routingPolicyArgs<ExtArgs>
+  executionHistories?: boolean | Prisma.Operation$executionHistoriesArgs<ExtArgs>
+  _count?: boolean | Prisma.OperationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["operation"]>
 
 export type OperationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -759,6 +891,8 @@ export type OperationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 export type OperationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   graphQLService?: boolean | Prisma.GraphQLServiceDefaultArgs<ExtArgs>
   routingPolicy?: boolean | Prisma.Operation$routingPolicyArgs<ExtArgs>
+  executionHistories?: boolean | Prisma.Operation$executionHistoriesArgs<ExtArgs>
+  _count?: boolean | Prisma.OperationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OperationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   graphQLService?: boolean | Prisma.GraphQLServiceDefaultArgs<ExtArgs>
@@ -772,6 +906,7 @@ export type $OperationPayload<ExtArgs extends runtime.Types.Extensions.InternalA
   objects: {
     graphQLService: Prisma.$GraphQLServicePayload<ExtArgs>
     routingPolicy: Prisma.$RoutingPolicyPayload<ExtArgs> | null
+    executionHistories: Prisma.$ExecutionHistoryPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1180,6 +1315,7 @@ export interface Prisma__OperationClient<T, Null = never, ExtArgs extends runtim
   readonly [Symbol.toStringTag]: "PrismaPromise"
   graphQLService<T extends Prisma.GraphQLServiceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.GraphQLServiceDefaultArgs<ExtArgs>>): Prisma.Prisma__GraphQLServiceClient<runtime.Types.Result.GetResult<Prisma.$GraphQLServicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   routingPolicy<T extends Prisma.Operation$routingPolicyArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Operation$routingPolicyArgs<ExtArgs>>): Prisma.Prisma__RoutingPolicyClient<runtime.Types.Result.GetResult<Prisma.$RoutingPolicyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  executionHistories<T extends Prisma.Operation$executionHistoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Operation$executionHistoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExecutionHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1636,6 +1772,30 @@ export type Operation$routingPolicyArgs<ExtArgs extends runtime.Types.Extensions
    */
   include?: Prisma.RoutingPolicyInclude<ExtArgs> | null
   where?: Prisma.RoutingPolicyWhereInput
+}
+
+/**
+ * Operation.executionHistories
+ */
+export type Operation$executionHistoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ExecutionHistory
+   */
+  select?: Prisma.ExecutionHistorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ExecutionHistory
+   */
+  omit?: Prisma.ExecutionHistoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ExecutionHistoryInclude<ExtArgs> | null
+  where?: Prisma.ExecutionHistoryWhereInput
+  orderBy?: Prisma.ExecutionHistoryOrderByWithRelationInput | Prisma.ExecutionHistoryOrderByWithRelationInput[]
+  cursor?: Prisma.ExecutionHistoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ExecutionHistoryScalarFieldEnum | Prisma.ExecutionHistoryScalarFieldEnum[]
 }
 
 /**

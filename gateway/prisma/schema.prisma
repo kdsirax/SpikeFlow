@@ -84,6 +84,7 @@ model Operation {
   graphQLService   GraphQLService @relation(fields: [graphQLServiceId], references: [id])
 
   routingPolicy RoutingPolicy?
+  executionHistories ExecutionHistory[]
 }
 
 model RoutingPolicy {
@@ -98,3 +99,18 @@ model RoutingPolicy {
   operationId String    @unique
   operation   Operation @relation(fields: [operationId], references: [id])
 }
+
+model ExecutionHistory {
+  id             String   @id @default(uuid())
+  operationId    String
+  operation      Operation @relation(fields: [operationId], references: [id])
+  runtimeChosen  String
+  decisionReason String?
+  cpuUsage       Float?
+  memoryUsage    Float?
+  cacheHit       Boolean
+  responseTime   Int
+  status         String
+  createdAt      DateTime @default(now())
+}
+

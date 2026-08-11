@@ -401,7 +401,8 @@ export const ModelName = {
   Application: 'Application',
   GraphQLService: 'GraphQLService',
   Operation: 'Operation',
-  RoutingPolicy: 'RoutingPolicy'
+  RoutingPolicy: 'RoutingPolicy',
+  ExecutionHistory: 'ExecutionHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -417,7 +418,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "organization" | "application" | "graphQLService" | "operation" | "routingPolicy"
+    modelProps: "organization" | "application" | "graphQLService" | "operation" | "routingPolicy" | "executionHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -791,6 +792,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ExecutionHistory: {
+      payload: Prisma.$ExecutionHistoryPayload<ExtArgs>
+      fields: Prisma.ExecutionHistoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ExecutionHistoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ExecutionHistoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload>
+        }
+        findFirst: {
+          args: Prisma.ExecutionHistoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ExecutionHistoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload>
+        }
+        findMany: {
+          args: Prisma.ExecutionHistoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload>[]
+        }
+        create: {
+          args: Prisma.ExecutionHistoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload>
+        }
+        createMany: {
+          args: Prisma.ExecutionHistoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ExecutionHistoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload>[]
+        }
+        delete: {
+          args: Prisma.ExecutionHistoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload>
+        }
+        update: {
+          args: Prisma.ExecutionHistoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.ExecutionHistoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ExecutionHistoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ExecutionHistoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.ExecutionHistoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecutionHistoryPayload>
+        }
+        aggregate: {
+          args: Prisma.ExecutionHistoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateExecutionHistory>
+        }
+        groupBy: {
+          args: Prisma.ExecutionHistoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExecutionHistoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ExecutionHistoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExecutionHistoryCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -894,6 +969,22 @@ export const RoutingPolicyScalarFieldEnum = {
 } as const
 
 export type RoutingPolicyScalarFieldEnum = (typeof RoutingPolicyScalarFieldEnum)[keyof typeof RoutingPolicyScalarFieldEnum]
+
+
+export const ExecutionHistoryScalarFieldEnum = {
+  id: 'id',
+  operationId: 'operationId',
+  runtimeChosen: 'runtimeChosen',
+  decisionReason: 'decisionReason',
+  cpuUsage: 'cpuUsage',
+  memoryUsage: 'memoryUsage',
+  cacheHit: 'cacheHit',
+  responseTime: 'responseTime',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type ExecutionHistoryScalarFieldEnum = (typeof ExecutionHistoryScalarFieldEnum)[keyof typeof ExecutionHistoryScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1200,6 +1291,7 @@ export type GlobalOmitConfig = {
   graphQLService?: Prisma.GraphQLServiceOmit
   operation?: Prisma.OperationOmit
   routingPolicy?: Prisma.RoutingPolicyOmit
+  executionHistory?: Prisma.ExecutionHistoryOmit
 }
 
 /* Types for Logging */

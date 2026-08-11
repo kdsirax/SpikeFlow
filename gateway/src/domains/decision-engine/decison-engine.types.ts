@@ -9,3 +9,5 @@ export interface RoutingDecision {
   cpuUsage?: number;
   memoryPercent?: number;
 }
+
+export type RuntimeDecision = RoutingDecision;

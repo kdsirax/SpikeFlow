@@ -66,3 +66,8 @@ export type Operation = Prisma.OperationModel
  * 
  */
 export type RoutingPolicy = Prisma.RoutingPolicyModel
+/**
+ * Model ExecutionHistory
+ * 
+ */
+export type ExecutionHistory = Prisma.ExecutionHistoryModel

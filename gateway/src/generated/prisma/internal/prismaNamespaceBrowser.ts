@@ -55,7 +55,8 @@ export const ModelName = {
   Application: 'Application',
   GraphQLService: 'GraphQLService',
   Operation: 'Operation',
-  RoutingPolicy: 'RoutingPolicy'
+  RoutingPolicy: 'RoutingPolicy',
+  ExecutionHistory: 'ExecutionHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -138,6 +139,22 @@ export const RoutingPolicyScalarFieldEnum = {
 } as const
 
 export type RoutingPolicyScalarFieldEnum = (typeof RoutingPolicyScalarFieldEnum)[keyof typeof RoutingPolicyScalarFieldEnum]
+
+
+export const ExecutionHistoryScalarFieldEnum = {
+  id: 'id',
+  operationId: 'operationId',
+  runtimeChosen: 'runtimeChosen',
+  decisionReason: 'decisionReason',
+  cpuUsage: 'cpuUsage',
+  memoryUsage: 'memoryUsage',
+  cacheHit: 'cacheHit',
+  responseTime: 'responseTime',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type ExecutionHistoryScalarFieldEnum = (typeof ExecutionHistoryScalarFieldEnum)[keyof typeof ExecutionHistoryScalarFieldEnum]
 
 
 export const SortOrder = {

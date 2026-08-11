@@ -4,7 +4,6 @@ import { startStandaloneServer } from "@apollo/server/standalone";
 import express from "express";
 import cors from "cors";
 
-
 import { AppError } from "./shared/errors/AppError.js";
 
 import { typeDefs as organizationTypeDefs } from "./domains/organization/organization.schema.js";
@@ -38,6 +37,11 @@ import { DecisionEngineService } from "./domains/decision-engine/decision-engine
 import { MetricsService } from "./domains/metrics/metrics.service.js";
 import { RuntimeService } from "./domains/runtime/runtime.service.js";
 
+import { typeDefs as executionHistoryTypeDefs } from "./domains/execution-history/execution-history.schema.js";
+import { resolvers as executionHistoryResolvers } from "./domains/execution-history/execution-history.resolver.js";
+import { PrismaExecutionHistoryRepository } from "./domains/execution-history/execution-history.repository.js";
+import { ExecutionHistoryService } from "./domains/execution-history/execution-history.service.js";
+
 import { gatewayRouter } from "./domains/gateway/gateway.router.js";
 import { cacheService } from "./shared/cache/cache.service.js";
 
@@ -59,6 +63,9 @@ const operationService = new OperationService(operationRepository, graphqlServic
 const routingPolicyRepository = new PrismaRoutingPolicyRepository();
 const routingPolicyService = new RoutingPolicyService(routingPolicyRepository, operationRepository, cacheService);
 
+const executionHistoryRepository = new PrismaExecutionHistoryRepository();
+const executionHistoryService = new ExecutionHistoryService(executionHistoryRepository);
+
 const metricsService = new MetricsService();
 const decisionEngineService = new DecisionEngineService(operationRepository, routingPolicyRepository, metricsService);
 const runtimeService = new RuntimeService(decisionEngineService);
@@ -71,6 +78,7 @@ export interface GraphQLContext {
   routingPolicyService: RoutingPolicyService;
   decisionEngineService: DecisionEngineService;
   runtimeService: RuntimeService;
+  executionHistoryService: ExecutionHistoryService;
 }
 
 // Merge typeDefs and resolvers
@@ -81,6 +89,7 @@ const typeDefs = [
   operationTypeDefs,
   routingPolicyTypeDefs,
   decisionEngineTypeDefs,
+  executionHistoryTypeDefs,
 ];
 
 const resolvers = {
@@ -90,6 +99,7 @@ const resolvers = {
     ...graphqlServiceResolvers.Query,
     ...operationResolvers.Query,
     ...routingPolicyResolvers.Query,
+    ...executionHistoryResolvers.Query,
   },
   Mutation: {
     ...organizationResolvers.Mutation,
@@ -150,6 +160,7 @@ export async function startServer() {
       routingPolicyService,
       decisionEngineService,
       runtimeService,
+      executionHistoryService,
     }),
     listen: { port: 4000 },
   });
