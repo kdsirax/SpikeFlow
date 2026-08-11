@@ -23,6 +23,14 @@ export const typeDefs = `#graphql
     enabled: Boolean!
   }
 
+  input UpdateRoutingPolicyInput {
+    operationId: ID
+    preferredRuntime: Runtime
+    cpuThreshold: Int
+    requestThreshold: Int
+    enabled: Boolean
+  }
+
   extend type Query {
     routingPolicies: [RoutingPolicy!]!
     routingPolicy(id: ID!): RoutingPolicy
@@ -30,5 +38,7 @@ export const typeDefs = `#graphql
 
   extend type Mutation {
     createRoutingPolicy(input: CreateRoutingPolicyInput!): RoutingPolicy!
+    updateRoutingPolicy(id: ID!, input: UpdateRoutingPolicyInput!): RoutingPolicy!
+    deleteRoutingPolicy(id: ID!): Boolean!
   }
 `;

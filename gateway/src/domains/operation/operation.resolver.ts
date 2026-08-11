@@ -1,4 +1,4 @@
-import type { CreateOperationInput } from "./operation.types.js";
+import type { CreateOperationInput, UpdateOperationInput } from "./operation.types.js";
 import type { OperationService } from "./operation.service.js";
 
 interface OperationContext {
@@ -29,6 +29,20 @@ export const resolvers = {
       context: OperationContext
     ) => {
       return context.operationService.createOperation(input);
+    },
+    updateOperation: async (
+      _parent: unknown,
+      { id, input }: { id: string; input: UpdateOperationInput },
+      context: OperationContext
+    ) => {
+      return context.operationService.updateOperation(id, input);
+    },
+    deleteOperation: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: OperationContext
+    ) => {
+      return context.operationService.deleteOperation(id);
     },
   },
 };

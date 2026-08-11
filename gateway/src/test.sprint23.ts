@@ -63,6 +63,21 @@ class MockOperationRepository implements IOperationRepository {
     return op;
   }
 
+  async update(id: string, data: any): Promise<Operation> {
+    const index = this.operations.findIndex((o) => o.id === id);
+    if (index === -1) throw new Error("Operation not found");
+    const updated: Operation = { ...this.operations[index]!, ...data, updatedAt: new Date().toISOString() };
+    this.operations[index] = updated;
+    return updated;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const index = this.operations.findIndex((o) => o.id === id);
+    if (index === -1) return false;
+    this.operations.splice(index, 1);
+    return true;
+  }
+
   async findAll(): Promise<Operation[]> {
     return this.operations;
   }
@@ -92,6 +107,21 @@ class MockGraphQLServiceRepository implements IGraphQLServiceRepository {
     };
     this.services.push(svc);
     return svc;
+  }
+
+  async update(id: string, data: any): Promise<GraphQLService> {
+    const index = this.services.findIndex((s) => s.id === id);
+    if (index === -1) throw new Error("Service not found");
+    const updated: GraphQLService = { ...this.services[index]!, ...data, updatedAt: new Date().toISOString() };
+    this.services[index] = updated;
+    return updated;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const index = this.services.findIndex((s) => s.id === id);
+    if (index === -1) return false;
+    this.services.splice(index, 1);
+    return true;
   }
 
   async findAll(): Promise<GraphQLService[]> {
@@ -127,6 +157,21 @@ class MockRoutingPolicyRepository implements IRoutingPolicyRepository {
     };
     this.policies.push(policy);
     return policy;
+  }
+
+  async update(id: string, data: any): Promise<RoutingPolicy> {
+    const index = this.policies.findIndex((p) => p.id === id);
+    if (index === -1) throw new Error("Policy not found");
+    const updated: RoutingPolicy = { ...this.policies[index]!, ...data, updatedAt: new Date().toISOString() };
+    this.policies[index] = updated;
+    return updated;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const index = this.policies.findIndex((p) => p.id === id);
+    if (index === -1) return false;
+    this.policies.splice(index, 1);
+    return true;
   }
 
   async findAll(): Promise<RoutingPolicy[]> {

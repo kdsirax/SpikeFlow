@@ -1,10 +1,12 @@
-import type { CreateOrganizationInput, Organization } from "./organization.types.js";
+import type { CreateOrganizationInput, UpdateOrganizationInput, Organization } from "./organization.types.js";
 import { prisma, type DatabaseClient } from "../../shared/database/prisma.js";
 import { handlePrismaError } from "../../shared/database/prisma-error.handler.js";
 import type { Organization as PrismaOrganization } from "../../generated/prisma/client.js";
 
 export interface IOrganizationRepository {
   create(data: CreateOrganizationInput): Promise<Organization>;
+  update(id: string, data: UpdateOrganizationInput): Promise<Organization>;
+  delete(id: string): Promise<boolean>;
   findAll(): Promise<Organization[]>;
   findById(id: string): Promise<Organization | null>;
   findByName(name: string): Promise<Organization | null>;
@@ -35,8 +37,36 @@ export class PrismaOrganizationRepository implements IOrganizationRepository {
     }
   }
 
+  async update(id: string, data: UpdateOrganizationInput): Promise<Organization> {
+    try {
+      const updated = await this.db.organization.update({
+        where: { id },
+        data: {
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.slug !== undefined && { slug: data.slug }),
+        },
+      });
+      return this.mapToDomain(updated);
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      await this.db.organization.delete({
+        where: { id },
+      });
+      return true;
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
   async findAll(): Promise<Organization[]> {
-    const list = await this.db.organization.findMany();
+    const list = await this.db.organization.findMany({
+      orderBy: { createdAt: "desc" },
+    });
     return list.map((item) => this.mapToDomain(item));
   }
 

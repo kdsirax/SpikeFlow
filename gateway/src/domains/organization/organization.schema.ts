@@ -12,6 +12,11 @@ export const typeDefs = `#graphql
     slug: String!
   }
 
+  input UpdateOrganizationInput {
+    name: String
+    slug: String
+  }
+
   type Query {
     organizations: [Organization!]!
     organization(id: ID!): Organization
@@ -19,5 +24,7 @@ export const typeDefs = `#graphql
 
   type Mutation {
     createOrganization(input: CreateOrganizationInput!): Organization!
+    updateOrganization(id: ID!, input: UpdateOrganizationInput!): Organization!
+    deleteOrganization(id: ID!): Boolean!
   }
 `;

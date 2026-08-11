@@ -14,3 +14,10 @@ export interface CreateGraphQLServiceInput {
   endpoint: string;
   environment: string;
 }
+
+export interface UpdateGraphQLServiceInput {
+  applicationId?: string | undefined;
+  name?: string | undefined;
+  endpoint?: string | undefined;
+  environment?: string | undefined;
+}

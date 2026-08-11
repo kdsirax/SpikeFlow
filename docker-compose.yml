@@ -72,6 +72,26 @@ services:
 
     working_dir: /app
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: spikeflow-frontend
+
+    restart: unless-stopped
+
+    depends_on:
+      - spikeflow
+
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000/graphql
+
+    ports:
+      - "3000:3000"
+
+    working_dir: /app
+
   nginx:
     image: nginx:alpine
 

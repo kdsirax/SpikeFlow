@@ -1,4 +1,7 @@
-import type { CreateGraphQLServiceInput } from "./graphql-service.types.js";
+import type {
+  CreateGraphQLServiceInput,
+  UpdateGraphQLServiceInput,
+} from "./graphql-service.types.js";
 import type { GraphQLServiceService } from "./graphql-service.service.js";
 
 interface GraphQLServiceContext {
@@ -29,6 +32,20 @@ export const resolvers = {
       context: GraphQLServiceContext
     ) => {
       return context.graphqlServiceService.createGraphQLService(input);
+    },
+    updateGraphQLService: async (
+      _parent: unknown,
+      { id, input }: { id: string; input: UpdateGraphQLServiceInput },
+      context: GraphQLServiceContext
+    ) => {
+      return context.graphqlServiceService.updateGraphQLService(id, input);
+    },
+    deleteGraphQLService: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: GraphQLServiceContext
+    ) => {
+      return context.graphqlServiceService.deleteGraphQLService(id);
     },
   },
 };

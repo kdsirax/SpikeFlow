@@ -39,6 +39,16 @@ export const typeDefs = `#graphql
     priority: Priority!
   }
 
+  input UpdateOperationInput {
+    graphQLServiceId: ID
+    name: String
+    type: OperationType
+    estimatedCost: EstimatedCost
+    cacheable: Boolean
+    requiresDatabase: Boolean
+    priority: Priority
+  }
+
   extend type Query {
     operations: [Operation!]!
     operation(id: ID!): Operation
@@ -46,5 +56,7 @@ export const typeDefs = `#graphql
 
   extend type Mutation {
     createOperation(input: CreateOperationInput!): Operation!
+    updateOperation(id: ID!, input: UpdateOperationInput!): Operation!
+    deleteOperation(id: ID!): Boolean!
   }
 `;

@@ -21,3 +21,11 @@ export interface CreateRoutingPolicyInput {
   requestThreshold: number;
   enabled: boolean;
 }
+
+export interface UpdateRoutingPolicyInput {
+  operationId?: string | undefined;
+  preferredRuntime?: Runtime | undefined;
+  cpuThreshold?: number | undefined;
+  requestThreshold?: number | undefined;
+  enabled?: boolean | undefined;
+}

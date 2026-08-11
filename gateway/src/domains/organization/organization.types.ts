@@ -7,10 +7,11 @@ export interface Organization {
 }
 
 export interface CreateOrganizationInput {
-    
   name: string;
   slug: string;
 }
 
-
-
+export interface UpdateOrganizationInput {
+  name?: string | undefined;
+  slug?: string | undefined;
+}

@@ -13,5 +13,8 @@ export interface CreateApplicationInput {
   description: string;
 }
 
-
-
+export interface UpdateApplicationInput {
+  organizationId?: string | undefined;
+  name?: string | undefined;
+  description?: string | undefined;
+}

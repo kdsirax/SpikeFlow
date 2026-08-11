@@ -1,10 +1,12 @@
-import type { CreateOperationInput, Operation } from "./operation.types.js";
+import type { CreateOperationInput, UpdateOperationInput, Operation } from "./operation.types.js";
 import { prisma, type DatabaseClient } from "../../shared/database/prisma.js";
 import { handlePrismaError } from "../../shared/database/prisma-error.handler.js";
 import type { Operation as PrismaOperation } from "../../generated/prisma/client.js";
 
 export interface IOperationRepository {
   create(data: CreateOperationInput): Promise<Operation>;
+  update(id: string, data: UpdateOperationInput): Promise<Operation>;
+  delete(id: string): Promise<boolean>;
   findAll(): Promise<Operation[]>;
   findById(id: string): Promise<Operation | null>;
   findByName(name: string): Promise<Operation | null>;
@@ -40,8 +42,41 @@ export class PrismaOperationRepository implements IOperationRepository {
     }
   }
 
+  async update(id: string, data: UpdateOperationInput): Promise<Operation> {
+    try {
+      const updated = await this.db.operation.update({
+        where: { id },
+        data: {
+          ...(data.graphQLServiceId !== undefined && { graphQLServiceId: data.graphQLServiceId }),
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.type !== undefined && { type: data.type }),
+          ...(data.estimatedCost !== undefined && { estimatedCost: data.estimatedCost }),
+          ...(data.cacheable !== undefined && { cacheable: data.cacheable }),
+          ...(data.requiresDatabase !== undefined && { requiresDatabase: data.requiresDatabase }),
+          ...(data.priority !== undefined && { priority: data.priority }),
+        },
+      });
+      return this.mapToDomain(updated);
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      await this.db.operation.delete({
+        where: { id },
+      });
+      return true;
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
   async findAll(): Promise<Operation[]> {
-    const list = await this.db.operation.findMany();
+    const list = await this.db.operation.findMany({
+      orderBy: { createdAt: "desc" },
+    });
     return list.map((item) => this.mapToDomain(item));
   }
 
@@ -62,6 +97,7 @@ export class PrismaOperationRepository implements IOperationRepository {
   async findByGraphQLServiceId(graphQLServiceId: string): Promise<Operation[]> {
     const list = await this.db.operation.findMany({
       where: { graphQLServiceId },
+      orderBy: { createdAt: "desc" },
     });
     return list.map((item) => this.mapToDomain(item));
   }

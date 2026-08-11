@@ -22,5 +22,5 @@ RUN npm run build
 # Expose application port
 EXPOSE 5000
 
-# Start the application
-CMD ["npm", "start"]
+# Push DB migrations/schema on startup and launch product service
+CMD ["sh", "-c", "npx prisma db push && npm start"]
