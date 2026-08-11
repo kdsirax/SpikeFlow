@@ -7,9 +7,9 @@ services:
     restart: unless-stopped
 
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-khushal3526}
+      POSTGRES_DB: ${POSTGRES_DB:-spikeflow}
 
     ports:
       - "5432:5432"
@@ -43,8 +43,10 @@ services:
       - postgres
       - redis
 
-    env_file:
-      - ./gateway/.env.docker
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-khushal3526}@postgres:5432/${POSTGRES_DB:-spikeflow}?schema=public
+      REDIS_URL: redis://redis:6379
+      PORT: 4000
 
     ports:
       - "4000:4000"
@@ -64,7 +66,7 @@ services:
       - postgres
 
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-khushal3526}@postgres:5432/${POSTGRES_DB:-spikeflow}?schema=public
       PORT: 5000
 
     ports:

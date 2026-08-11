@@ -14,8 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SpikeFlow Dashboard — Intelligent GraphQL Execution Layer",
-  description: "Real-time execution observability, metrics, and routing intelligence for GraphQL workloads.",
+  title: "SpikeFlow — Intelligent GraphQL Execution Layer",
+  description: "Intelligent. Adaptive. Scalable. Real-time execution observability, metrics, and routing intelligence for GraphQL workloads.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

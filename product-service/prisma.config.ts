@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
-dotenv.config({ path: ".env.local" });
-dotenv.config();
+if (!process.env["DATABASE_URL"]) {
+  dotenv.config({ path: ".env.local" });
+  dotenv.config();
+}
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({

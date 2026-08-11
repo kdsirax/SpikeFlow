@@ -57,22 +57,78 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 bg-slate-950/90 border-r border-slate-800/80 flex flex-col flex-shrink-0 backdrop-blur-xl h-screen">
-      {/* Brand & Logo */}
-      <div className="h-16 px-6 flex items-center border-b border-slate-800/80 gap-3">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-cyan-500/20">
-          ⚡
+      {/* Brand & Official Logo */}
+      <div className="h-16 px-5 flex items-center border-b border-slate-800/80 gap-3">
+        {/* Hexagonal Network Flow Icon */}
+        <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center">
+          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-md">
+            <defs>
+              <linearGradient id="sidebarFlowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#0284c7" />
+                <stop offset="50%" stopColor="#06b6d4" />
+                <stop offset="100%" stopColor="#14b8a6" />
+              </linearGradient>
+              <linearGradient id="sidebarHexBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
+                <stop offset="50%" stopColor="#1e293b" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.8" />
+              </linearGradient>
+            </defs>
+
+            {/* Hexagon Outline */}
+            <polygon
+              points="50,6 88,28 88,72 50,94 12,72 12,28"
+              fill="#090d16"
+              stroke="url(#sidebarHexBorder)"
+              strokeWidth="4"
+              strokeLinejoin="round"
+            />
+
+            {/* Network Connections */}
+            <g stroke="#334155" strokeWidth="1.8" opacity="0.85">
+              <line x1="28" y1="42" x2="48" y2="28" />
+              <line x1="48" y1="28" x2="68" y2="40" />
+              <line x1="28" y1="42" x2="35" y2="70" />
+              <line x1="35" y1="70" x2="65" y2="68" />
+              <line x1="68" y1="40" x2="65" y2="68" />
+              <line x1="48" y1="28" x2="48" y2="52" />
+            </g>
+
+            {/* Network Nodes */}
+            <circle cx="48" cy="28" r="4" fill="#0284c7" />
+            <circle cx="28" cy="42" r="3.5" fill="#0369a1" />
+            <circle cx="68" cy="40" r="3.5" fill="#0d9488" />
+            <circle cx="35" cy="70" r="3" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
+            <circle cx="65" cy="68" r="3.5" fill="#0f172a" stroke="#06b6d4" strokeWidth="1.5" />
+
+            {/* Dynamic Ascending Flow Curve with Arrow */}
+            <path
+              d="M 22 68 Q 36 68, 46 52 T 76 34"
+              fill="none"
+              stroke="url(#sidebarFlowGrad)"
+              strokeWidth="5"
+              strokeLinecap="round"
+            />
+            <circle cx="22" cy="68" r="4" fill="#0284c7" stroke="#fff" strokeWidth="1.5" />
+            <polygon
+              points="74,25 86,30 78,40 76,33"
+              fill="#14b8a6"
+            />
+          </svg>
         </div>
+
+        {/* Text Logo */}
         <div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-100 tracking-tight text-base font-mono">
-              SpikeFlow
+          <div className="flex items-center">
+            <span className="font-bold text-slate-100 tracking-tight text-base font-sans">
+              Spike
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/50">
-              MVP
+            <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400 tracking-tight text-base font-sans">
+              Flow
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 truncate font-sans">
-            GraphQL Execution Layer
+          <p className="text-[10px] text-slate-400 truncate font-sans tracking-wide">
+            Intelligent. Adaptive. Scalable.
           </p>
         </div>
       </div>
